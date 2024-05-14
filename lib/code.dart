@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -12,6 +15,37 @@ class code extends StatefulWidget {
 }
 
 class _codeState extends State<code> {
+  TextEditingController phonecontroller = TextEditingController();
+
+  final authCred = FirebaseAuth.instance;
+
+  bool isLoading = false;
+
+  Future<void> checkphoneNumber() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      await authCred.verifyPhoneNumber(
+          phoneNumber: '+91${phonecontroller.text}',
+          verificationCompleted: (PhoneAuthCredential value) async {
+            await authCred.signInWithCredential(value);
+          },
+          verificationFailed: (FirebaseAuthException e) {
+            print('-------------$e');
+          },
+          codeSent: (String verificationId, int? token) {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => otp(verificationId: verificationId)));
+          },
+          codeAutoRetrievalTimeout: (v) {});
+    } catch (e) {
+      print('=================$e');
+    }
+  }
+
   String phoneNumber = "";
   @override
   Widget build(BuildContext context) {
@@ -34,30 +68,22 @@ class _codeState extends State<code> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsetsDirectional.all(70),
-            child: InternationalPhoneNumberInput(
-              onInputChanged: (PhoneNumber number) {
-                print(number.phoneNumber);
-              },
-              inputDecoration: InputDecoration(
-                  labelText: 'PHONE NUMBER', border: OutlineInputBorder()),
+            padding: const EdgeInsets.all(15.0),
+            child: TextField(
+              decoration: InputDecoration(
+                  hintText: 'enter your phone number',
+                  labelText: 'enter phone number',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20))),
             ),
           ),
           ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => otp(),
-                    ));
-              },
-              child: Text(
-                "verify",
-                style: TextStyle(
-                    fontSize: 20,
-                    color: const Color.fromARGB(255, 245, 124, 87),
-                    fontWeight: FontWeight.bold),
-              ))
+              onPressed: checkphoneNumber,
+              child: isLoading
+                  ? CircularProgressIndicator(
+                      color: Colors.orange,
+                    )
+                  : const Text("verification"))
         ],
       ),
     );
